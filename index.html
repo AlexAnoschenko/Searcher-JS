@@ -9,13 +9,32 @@
   </head>
   <body>
     <div id="header"></div>
+    <div id="menu">
+      <input
+        type="button"
+        id="mainButton"
+        class="switch-button"
+        value="Favorite"
+      />
+      <input
+        type="button"
+        id="searchButton"
+        class="switch-button"
+        value="Search"
+      />
+    </div>
+
     <div id="inputBlock">
       <input type="text" id="mainInput" placeholder="London..." />
     </div>
     <div id="content">
       <ul id="main-listing"></ul>
     </div>
-    <div id="footer"></div>
+    <div id="footer">
+      <ul id="pagination"></ul>
+    </div>
+    <div id="modal"></div>
+    <div id="filter"></div>
     <script src="script.js"></script>
   </body>
 </html>
