@@ -1,15 +1,16 @@
 var mainInput = document.getElementById("mainInput");
 var mainListing = document.getElementById("main-listing");
+var footerUl = document.getElementById("pagination");
 
 const url =
   "https://cors-anywhere.herokuapp.com/https://api.nestoria.co.uk/api?encoding=json&pretty=1&action=search_listings&country=uk&listing_type=buy&place_name=";
 const method = "GET";
 var city;
-var getData;
+
 favoriveArr = [];
 let listingObj = null;
 var favorButton = false;
-var maxPages = 50;
+var maxPages = null;
 var selectPage = 1;
 var prevPage = null;
 var nextPage = null;
@@ -18,36 +19,74 @@ mainInput.addEventListener("keydown", startSearch);
 document.getElementById("modal").addEventListener("click", closeModal);
 document.getElementById("mainButton").addEventListener("click", buildFavorite);
 document.getElementById("searchButton").addEventListener("click", searchButton);
-document.getElementById("pagination").addEventListener("click", changePage);
+footerUl.addEventListener("click", changePage);
 document.getElementById("footer").addEventListener("click", goFirstLast);
 
 function startSearch(e) {
   city = mainInput.value.trim();
   if (e.keyCode === 13) {
-    createPage();
-    document.getElementById("main-listing").innerHTML = "";
+    mainListing.innerHTML = "";
     if (city.length > 0) {
-      return main();
-    } else {
-      return;
+      main();
     }
-  } else {
-    return;
   }
 }
 
+function getData(pageArg) {
+  if (pageArg == undefined) {
+    return fetch(url + city)
+      .then(responce => {
+        return responce.json();
+      })
+      .then(listing => {
+        listingObj = listing.response.listings;
+        maxPages =
+          listing.response.total_pages > 50 ? 50 : listing.response.total_pages;
+      });
+  } else {
+    return fetch(url + city + pageArg)
+      .then(responce => {
+        return responce.json();
+      })
+      .then(listing => {
+        listingObj = listing.response.listings;
+        maxPages =
+          listing.response.total_pages > 50 ? 50 : listing.response.total_pages;
+      });
+  }
+}
+
+async function main() {
+  await getData();
+  buildContent(listingObj, mainListing);
+  createPage();
+}
+
+function getId(itemData) {
+  firstWord = "detail/";
+  lastWord = "/title";
+  var startIndex = itemData.lister_url.indexOf(firstWord);
+  var endIndex = itemData.lister_url.indexOf(lastWord);
+
+  var gotId = itemData.lister_url.slice(
+    startIndex + firstWord.length,
+    endIndex
+  );
+  return gotId;
+}
+
 function createPage() {
-  if (document.getElementById("pagination").innerHTML == "") {
-    document.getElementById("pagination").innerHTML = "";
+  if (footerUl.innerHTML === "") {
+    footerUl.innerHTML = "";
     for (let i = 1; i < 6; i++) {
       var page = document.createElement("li");
       page.classList = "pages";
       page.innerHTML = i;
-      if (+page.innerHTML == 1) {
+      if (i === 1) {
         page.classList.add("active");
         page.classList.add("disabled");
       }
-      document.getElementById("pagination").appendChild(page);
+      footerUl.appendChild(page);
     }
     firstLast();
     document.getElementById("first").disabled = true;
@@ -57,54 +96,54 @@ function createPage() {
 }
 
 function scrollPage() {
-  document.getElementById("pagination").innerHTML = "";
-  if (selectPage == 1) {
+  footerUl.innerHTML = "";
+  if (selectPage === 1) {
     for (let i = 1; i < 6; i++) {
       var page = document.createElement("li");
       page.classList = "pages";
       page.innerHTML = i;
-      if (+page.innerHTML == 1) {
+      if (i === 1) {
         page.classList.add("active");
         page.classList.add("disabled");
       }
-      document.getElementById("pagination").appendChild(page);
+      footerUl.appendChild(page);
     }
     firstLast();
     document.getElementById("first").disabled = true;
-  } else if (selectPage == 2) {
+  } else if (selectPage === 2) {
     for (let i = 1; i < 6; i++) {
       var page = document.createElement("li");
       page.classList = "pages";
       page.innerHTML = i;
-      if (+page.innerHTML == 2) {
+      if (i === 2) {
         page.classList.add("active");
         page.classList.add("disabled");
       }
-      document.getElementById("pagination").appendChild(page);
+      footerUl.appendChild(page);
     }
     firstLast();
-  } else if (selectPage == 49) {
-    for (let i = 46; i < 51; i++) {
+  } else if (selectPage === maxPages - 1) {
+    for (let i = maxPages - 4; i < maxPages + 1; i++) {
       var page = document.createElement("li");
       page.classList = "pages";
       page.innerHTML = i;
-      if (+page.innerHTML == 49) {
+      if (i === maxPages - 1) {
         page.classList.add("active");
         page.classList.add("disabled");
       }
-      document.getElementById("pagination").appendChild(page);
+      footerUl.appendChild(page);
     }
     firstLast();
-  } else if (selectPage == 50) {
-    for (let i = 46; i < 51; i++) {
+  } else if (selectPage === maxPages) {
+    for (let i = maxPages - 4; i < maxPages + 1; i++) {
       var page = document.createElement("li");
       page.classList = "pages";
       page.innerHTML = i;
-      if (+page.innerHTML == 50) {
+      if (i === maxPages) {
         page.classList.add("active");
         page.classList.add("disabled");
       }
-      document.getElementById("pagination").appendChild(page);
+      footerUl.appendChild(page);
     }
     firstLast();
     document.getElementById("last").disabled = true;
@@ -116,45 +155,31 @@ function scrollPage() {
       var page = document.createElement("li");
       page.classList = "pages";
       page.innerHTML = i;
-      if (+page.innerHTML == +selectPage) {
+      if (i === +selectPage) {
         page.classList.add("active");
         page.classList.add("disabled");
       }
-      document.getElementById("pagination").appendChild(page);
+      footerUl.appendChild(page);
     }
     firstLast();
   }
 }
 
-function goFirstLast(e) {
+async function goFirstLast(e) {
   if (e.target.tagName !== "UL") {
-    document.getElementById("main-listing").innerHTML = "";
-    if (e.target.tagName == "INPUT") {
-      if (e.target.value == "<<") {
-        const request = fetch(url + city + "&page=1")
-          .then(responce => {
-            return responce.json();
-          })
-          .then(listing => {
-            listingObj = listing.response.listings;
-            selectPage = 1;
-            scrollPage();
-            buildContent();
-          });
-      } else if (e.target.value == ">>") {
-        const request = fetch(url + city + "&page=50")
-          .then(responce => {
-            return responce.json();
-          })
-          .then(listing => {
-            listingObj = listing.response.listings;
-            selectPage = 50;
-            scrollPage();
-            buildContent();
-          });
+    mainListing.innerHTML = "";
+    if (e.target.tagName === "INPUT") {
+      if (e.target.value === "<<") {
+        selectPage = 1;
+        await getData("&page=1");
+        buildContent(listingObj, mainListing);
+        scrollPage();
+      } else if (e.target.value === ">>") {
+        selectPage = maxPages;
+        await getData(`&page= + ${maxPages}`);
+        buildContent(listingObj, mainListing);
+        scrollPage();
       }
-    } else {
-      return;
     }
   }
 }
@@ -165,54 +190,27 @@ function firstLast() {
   firstPage.id = "first";
   firstPage.classList = "firstLast";
   firstPage.value = "<<";
-  document
-    .getElementById("pagination")
-    .insertBefore(firstPage, document.getElementById("pagination").children[0]);
+  footerUl.insertBefore(firstPage, footerUl.children[0]);
 
   var lastPage = document.createElement("input");
   lastPage.type = "button";
   lastPage.id = "last";
   lastPage.classList = "firstLast";
   lastPage.value = ">>";
-  document.getElementById("pagination").appendChild(lastPage);
+  footerUl.appendChild(lastPage);
 }
 
-function changePage(e) {
-  if (e.target.tagName == "LI") {
-    document.getElementById("main-listing").innerHTML = "";
-
+async function changePage(e) {
+  if (e.target.tagName === "LI") {
+    mainListing.innerHTML = "";
     selectPage = +e.target.innerHTML;
     var pageValue = e.target.innerHTML;
     var pageUrl = "&page=" + pageValue;
+
+    await getData(pageUrl);
+    buildContent(listingObj, mainListing);
     scrollPage();
-
-    const request = fetch(url + city + pageUrl)
-      .then(responce => {
-        return responce.json();
-      })
-      .then(listing => {
-        listingObj = listing.response.listings;
-        console.log(url + city + pageUrl);
-        console.log(listingObj);
-
-        buildContent();
-      });
-  } else {
-    return;
   }
-}
-
-function main() {
-  const request = fetch(url + city)
-    .then(responce => {
-      return responce.json();
-    })
-    .then(listing => {
-      listingObj = listing.response.listings;
-      console.log(listingObj);
-
-      buildContent();
-    });
 }
 
 function showModal(e) {
@@ -248,13 +246,8 @@ function showModal(e) {
   modalButton.addEventListener("click", addFavor);
 
   for (let i = 0; i < listingObj.length; i++) {
-    if (
-      target.getAttribute("itemId") == listingObj[i].lister_url.slice(34, 59)
-    ) {
-      modalContent.setAttribute(
-        "itemId",
-        listingObj[i].lister_url.slice(34, 59)
-      );
+    if (target.getAttribute("itemId") == getId(listingObj[i])) {
+      modalContent.setAttribute("itemId", getId(listingObj[i]));
       modalImg.innerHTML = "<img src=" + listingObj[i].img_url + ">";
       modalTitle.innerHTML = "<span>" + listingObj[i].title + "</span>";
       modalBath.innerHTML =
@@ -270,16 +263,14 @@ function closeModal(e) {
     document.getElementById("modal").innerHTML = "";
     document.getElementById("modal").style.display = "none";
     document.getElementById("filter").style.display = "none";
-  } else {
-    return;
   }
 }
 
 function addFavor() {
   for (let i = 0; i < listingObj.length; i++) {
     if (
-      document.getElementById("modal-content").getAttribute("itemId") ==
-      listingObj[i].lister_url.slice(34, 59)
+      document.getElementById("modal-content").getAttribute("itemId") ===
+      getId(listingObj[i])
     ) {
       if (
         localStorage.getItem("favorite") !== null &&
@@ -296,26 +287,33 @@ function addFavor() {
   }
 }
 
-function buildFavorite() {
-  document.getElementById("main-listing").style.display = "none";
-  document.getElementById("footer").style.display = "none";
+function searchButton() {
+  document.getElementById("favorite-list").style.display = "none";
+  document.getElementById("favorite-list").remove();
+  mainListing.style.display = "block";
+  document.getElementById("footer").style.display = "block";
+}
 
+function buildFavorite() {
+  mainListing.style.display = "none";
+  document.getElementById("footer").style.display = "none";
   var favoriteList = document.createElement("ul");
   favoriteList.id = "favorite-list";
   document.getElementById("content").appendChild(favoriteList);
-
   var favorite = JSON.parse(localStorage.getItem("favorite"));
-  //console.log(favorite);
+  buildContent(favorite, favoriteList);
+}
 
-  for (let i = 0; i < favorite.length; i++) {
-    var newFavorLi = document.createElement("li");
-    favoriteList.appendChild(newFavorLi);
+function buildContent(usingData, usingList) {
+  for (let i = 0; i < usingData.length; i++) {
+    var newLi = document.createElement("li");
+    usingList.appendChild(newLi);
 
     var itemBlock = document.createElement("div");
     itemBlock.classList = "item-block";
-    favoriteList.children[i].appendChild(itemBlock);
+    usingList.children[i].appendChild(itemBlock);
     itemBlock.addEventListener("click", showModal);
-    itemBlock.setAttribute("itemId", favorite[i].lister_url.slice(34, 59));
+    itemBlock.setAttribute("itemId", getId(usingData[i]));
 
     var imgBlock = document.createElement("div");
     imgBlock.classList = "img-block";
@@ -324,44 +322,51 @@ function buildFavorite() {
     var infoBlock = document.createElement("div");
     infoBlock.classList = "info-block";
 
-    favoriteList.children[i].children[0].appendChild(imgBlock);
-    imgBlock.innerHTML = "<img src=" + favorite[i].img_url + ">";
+    usingList.children[i].children[0].appendChild(imgBlock);
+    imgBlock.innerHTML = "<img src=" + usingData[i].img_url + ">";
 
-    favoriteList.children[i].children[0].appendChild(contentBlock);
+    usingList.children[i].children[0].appendChild(contentBlock);
     var titleBlock = document.createElement("div");
     var summaryBlock = document.createElement("div");
     contentBlock.appendChild(titleBlock);
     titleBlock.classList = "title-block";
-    titleBlock.innerHTML = "<span>" + favorite[i].title + "</span>";
+    titleBlock.innerHTML = "<span>" + usingData[i].title + "</span>";
     contentBlock.appendChild(summaryBlock);
     summaryBlock.classList = "summary-block";
-    summaryBlock.innerHTML = "<span>" + favorite[i].summary + "</span>";
+    summaryBlock.innerHTML = "<span>" + usingData[i].summary + "</span>";
 
-    favoriteList.children[i].children[0].appendChild(infoBlock);
+    usingList.children[i].children[0].appendChild(infoBlock);
     var priceBlock = document.createElement("div");
     infoBlock.appendChild(priceBlock);
     priceBlock.classList = "price-block";
-    priceBlock.innerHTML = "<span>" + favorite[i].price_formatted + "</span>";
+    priceBlock.innerHTML = "<span>" + usingData[i].price_formatted + "</span>";
   }
 }
 
-function searchButton() {
-  document.getElementById("favorite-list").style.display = "none";
-  document.getElementById("favorite-list").remove();
-  document.getElementById("main-listing").style.display = "block";
-  document.getElementById("footer").style.display = "block";
-}
+window.addEventListener("scroll", async () => {
+  const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+  const scrolled = window.scrollY;
 
-function buildContent() {
+  if (Math.ceil(scrolled) === scrollable) {
+    console.log("bottom");
+    selectPage += 1;
+    var pageUrl = "&page=" + selectPage;
+    await getData(pageUrl);
+    loadContent();
+    scrollPage();
+  }
+});
+
+function loadContent() {
   for (let i = 0; i < listingObj.length; i++) {
     var newLi = document.createElement("li");
     mainListing.appendChild(newLi);
 
     var itemBlock = document.createElement("div");
     itemBlock.classList = "item-block";
-    mainListing.children[i].appendChild(itemBlock);
+    newLi.insertBefore(itemBlock, null);
     itemBlock.addEventListener("click", showModal);
-    itemBlock.setAttribute("itemId", listingObj[i].lister_url.slice(34, 59));
+    itemBlock.setAttribute("itemId", getId(listingObj[i]));
 
     var imgBlock = document.createElement("div");
     imgBlock.classList = "img-block";
@@ -370,10 +375,10 @@ function buildContent() {
     var infoBlock = document.createElement("div");
     infoBlock.classList = "info-block";
 
-    mainListing.children[i].children[0].appendChild(imgBlock);
+    itemBlock.insertBefore(imgBlock, null);
     imgBlock.innerHTML = "<img src=" + listingObj[i].img_url + ">";
 
-    mainListing.children[i].children[0].appendChild(contentBlock);
+    itemBlock.insertBefore(contentBlock, null);
     var titleBlock = document.createElement("div");
     var summaryBlock = document.createElement("div");
     contentBlock.appendChild(titleBlock);
@@ -383,7 +388,7 @@ function buildContent() {
     summaryBlock.classList = "summary-block";
     summaryBlock.innerHTML = "<span>" + listingObj[i].summary + "</span>";
 
-    mainListing.children[i].children[0].appendChild(infoBlock);
+    itemBlock.insertBefore(infoBlock, null);
     var priceBlock = document.createElement("div");
     infoBlock.appendChild(priceBlock);
     priceBlock.classList = "price-block";
